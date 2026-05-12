@@ -1,0 +1,259 @@
+M6600 PROJECT COMMANDS
+=====================
+
+0. Activate environment
+-----------------------
+
+conda activate accent
+cd C:\Users\hexyw\Desktop\M6600_Project
+
+
+1. Check package import
+-----------------------
+
+python -c "from src.utils.constants import L2ARCTIC_OFFICIAL_METADATA; print(L2ARCTIC_OFFICIAL_METADATA)"
+
+
+2. Prepare Hugging Face L2Arctic subset
+---------------------------------------
+
+This prepares KoelLabs/L2Arctic and generates metadata and figures.
+
+Basic run:
+
+python -m src.data.prepare_l2arctic
+
+Force re-download:
+
+python -m src.data.prepare_l2arctic --force-download
+
+Skip figures:
+
+python -m src.data.prepare_l2arctic --skip-visualization
+
+Expected outputs:
+
+data/processed/metadata_l2_arctic.csv
+data/processed/metadata_l2_arctic.summary.json
+results/logs/l2arctic_inspection.txt
+results/figures/l2arctic_label_distribution.png
+results/figures/l2arctic_speaker_distribution.png
+results/figures/l2arctic_split_distribution.png
+results/figures/l2arctic_label_speaker_heatmap.png
+
+
+3. Prepare official L2-ARCTIC release
+-------------------------------------
+
+This extracts official speaker zip files and builds metadata for all official wav files.
+
+Basic run:
+
+python -m src.data.prepare_l2arctic_official
+
+Force re-extraction:
+
+python -m src.data.prepare_l2arctic_official --force
+
+Check metadata:
+
+python -c "import pandas as pd; df=pd.read_csv('data/processed/metadata_l2_arctic_official.csv'); print(df.head()); print(df.shape); print(df['label'].value_counts()); print(df['speaker'].value_counts().head())"
+
+Expected output:
+
+data/processed/metadata_l2_arctic_official.csv
+
+
+4. Prepare external datasets
+----------------------------
+
+Small test:
+
+python -m src.data.prepare_external_datasets --datasets common_accent --max-per-label 5 --max-total-per-config 20 --max-scan 100 --eval
+
+Medium run:
+
+python -m src.data.prepare_external_datasets --datasets common_accent common_native english_dialects --max-per-label 80 --max-total-per-config 120 --max-scan 3000 --eval
+
+Large run:
+
+python -m src.data.prepare_external_datasets --datasets common_accent common_native commonvoice_accent_test english_dialects --max-per-label 300 --max-total-per-config 800 --max-scan 30000 --eval
+
+Approximate 50 percent L2-ARCTIC scale attempt:
+
+python -m src.data.prepare_external_datasets --datasets common_accent common_native commonvoice_accent_test english_dialects --max-per-label 1000 --max-total-per-config 2000 --max-scan 100000 --eval
+
+Expected outputs:
+
+data/processed/external_metadata.csv
+results/logs/external_baseline_predictions.csv
+results/logs/external_baseline_summary.json
+
+
+5. Run unified baseline evaluation
+----------------------------------
+
+User audio:
+
+python -m src.exp0_run_baseline --source user_audio --audio data\samples\XuHe_audio.wav data\samples\ZhiyuanLu_Audio.wav --output results\logs\exp0_user_audio.csv
+
+Official L2-ARCTIC:
+
+python -m src.exp0_run_baseline --source official --samples 300 --seed 42 --output results\logs\exp0_official_300.csv
+
+Official L2-ARCTIC full sample test:
+
+python -m src.exp0_run_baseline --source official --samples 1000 --seed 42 --output results\logs\exp0_official_1000.csv
+
+Hugging Face L2Arctic:
+
+python -m src.exp0_run_baseline --source hf --hf-split scripted --samples 300 --seed 42 --output results\logs\exp0_hf_300.csv
+
+Hugging Face L2Arctic larger test:
+
+python -m src.exp0_run_baseline --source hf --hf-split scripted --samples 1000 --seed 42 --output results\logs\exp0_hf_1000.csv
+
+External datasets:
+
+python -m src.exp0_run_baseline --source external --samples 300 --seed 42 --output results\logs\exp0_external_300.csv
+
+External full set:
+
+python -m src.exp0_run_baseline --source external --samples 0 --seed 42 --output results\logs\exp0_external_all.csv
+
+Custom metadata:
+
+python -m src.exp0_run_baseline --source metadata --metadata data\processed\val_file_level.csv --samples 500 --seed 42 --output results\logs\exp0_val_file_level.csv
+
+Custom metadata speaker-disjoint validation:
+
+python -m src.exp0_run_baseline --source metadata --metadata data\processed\val_speaker_disjoint.csv --samples 500 --seed 42 --output results\logs\exp0_val_speaker_disjoint.csv
+
+
+6. Make train and validation splits
+-----------------------------------
+
+Basic run:
+
+python -m src.data.make_splits
+
+Expected outputs:
+
+data/processed/train_file_level.csv
+data/processed/val_file_level.csv
+data/processed/train_speaker_disjoint.csv
+data/processed/val_speaker_disjoint.csv
+
+Check split files:
+
+python -c "import pandas as pd; files=['train_file_level.csv','val_file_level.csv','train_speaker_disjoint.csv','val_speaker_disjoint.csv']; [print('\n'+f, pd.read_csv('data/processed/'+f).shape, 'speakers=', pd.read_csv('data/processed/'+f)['speaker'].nunique(), '\n', pd.read_csv('data/processed/'+f)['label'].value_counts().sort_index()) for f in files]"
+
+
+7. Useful result inspection commands
+------------------------------------
+
+Inspect external predictions:
+
+python -c "import pandas as pd; df=pd.read_csv('results/logs/exp0_external_300.csv'); print(df.head()); print('\nPrediction counts:'); print(df['pred_label'].value_counts()); print('\nBy target label:'); print(pd.crosstab(df.get('target_label', df['true_label']), df['pred_label']))"
+
+Inspect external full predictions:
+
+python -c "import pandas as pd; df=pd.read_csv('results/logs/exp0_external_all.csv'); print(df.head()); print('\nPrediction counts:'); print(df['pred_label'].value_counts()); print('\nBy target label:'); print(pd.crosstab(df.get('target_label', df['true_label']), df['pred_label']))"
+
+Inspect official baseline result:
+
+python -c "import pandas as pd; df=pd.read_csv('results/logs/exp0_official_300.csv'); print(df[['speaker','true_label','pred_label','pred_score','correct']].head(30)); print('accuracy=', df[df['has_comparable_label']==True]['correct'].astype(bool).mean()); print(pd.crosstab(df['true_label'], df['pred_label']))"
+
+Inspect HF baseline result:
+
+python -c "import pandas as pd; df=pd.read_csv('results/logs/exp0_hf_300.csv'); print(df[['speaker','true_label','pred_label','pred_score','correct']].head(30)); print('accuracy=', df['correct'].astype(bool).mean()); print(pd.crosstab(df['true_label'], df['pred_label']))"
+
+Inspect user audio result:
+
+python -c "import pandas as pd; df=pd.read_csv('results/logs/exp0_user_audio.csv'); print(df[['audio_path','pred_label','pred_score']])"
+
+
+8. Recommended current workflow
+-------------------------------
+
+Step A: Prepare official L2-ARCTIC data
+
+python -m src.data.prepare_l2arctic_official
+
+Step B: Prepare Hugging Face L2Arctic subset
+
+python -m src.data.prepare_l2arctic --skip-visualization
+
+Step C: Prepare external datasets small or medium
+
+python -m src.data.prepare_external_datasets --datasets common_accent common_native english_dialects --max-per-label 80 --max-total-per-config 120 --max-scan 3000 --eval
+
+Step D: Run baseline on official, HF, and external data
+
+python -m src.exp0_run_baseline --source official --samples 300 --seed 42 --output results\logs\exp0_official_300.csv
+python -m src.exp0_run_baseline --source hf --hf-split scripted --samples 300 --seed 42 --output results\logs\exp0_hf_300.csv
+python -m src.exp0_run_baseline --source external --samples 300 --seed 42 --output results\logs\exp0_external_300.csv
+
+Step E: Make file-level and speaker-disjoint splits
+
+python -m src.data.make_splits
+
+Step F: Later train two models
+
+Exp1: DistilHuBERT on train_file_level.csv, validate on val_file_level.csv
+Exp2: DistilHuBERT on train_speaker_disjoint.csv, validate on val_speaker_disjoint.csv
+
+
+9. Important notes
+------------------
+
+Use python -m after refactoring.
+
+Correct:
+
+python -m src.data.prepare_l2arctic
+python -m src.data.prepare_l2arctic_official
+python -m src.data.prepare_external_datasets
+python -m src.exp0_run_baseline --source official --samples 10
+
+Avoid direct script execution after refactoring:
+
+python src\data\prepare_l2arctic.py
+python src\data\prepare_l2arctic_official.py
+python src\data\prepare_external_datasets.py
+python src\exp0_run_baseline.py
+
+Reason:
+
+After refactoring, scripts import modules like src.utils.constants.
+Running with python -m keeps the project root on Python's module search path.
+
+
+
+
+
+
+
+
+python -m src.training.train_distilhubert --train-csv data/processed/train_file_level.csv --dev-csv data/processed/val_file_level.csv --test-csv data/processed/test_file_level.csv --output-dir models/checkpoints/exp1_file_level_distilhubert --epochs 3 --batch-size 4 --eval-batch-size 4 --gradient-accumulation-steps 2 --max-seconds 8 --freeze-feature-encoder
+
+python -m src.training.train_distilhubert --train-csv data/processed/train_speaker_disjoint.csv --dev-csv data/processed/dev_speaker_disjoint.csv --test-csv data/processed/test_speaker_disjoint.csv --output-dir models/checkpoints/exp2_speaker_disjoint_fold0_distilhubert --epochs 3 --batch-size 4 --eval-batch-size 4 --gradient-accumulation-steps 2 --max-seconds 8 --freeze-feature-encoder
+
+一次跑俩python -m src.training.run_core_experiments --which minimum --epochs 3 --batch-size 4 --eval-batch-size 4 --gradient-accumulation-steps 2 --max-seconds 8 --freeze-feature-encoder
+
+file-level
+python -m src.training.run_core_experiments --which file --epochs 3 --batch-size 4 --eval-batch-size 4 --gradient-accumulation-steps 2 --max-seconds 8 --freeze-feature-encoder
+
+speaker-disjoint 4-fold
+python -m src.training.run_core_experiments --which speaker4fold --epochs 3 --batch-size 4 --eval-batch-size 4 --gradient-accumulation-steps 2 --max-seconds 8 --freeze-feature-encoder
+
+
+python -m src.training.train_distilhubert --train-csv data/processed/splits/split2_speaker_disjoint_fold0/train.csv --dev-csv data/processed/splits/split2_speaker_disjoint_fold0/dev.csv --test-csv data/processed/splits/split2_speaker_disjoint_fold0/test.csv --output-dir models/checkpoints/exp2_speaker_disjoint_fold0_distilhubert --epochs 3 --batch-size 4 --eval-batch-size 4 --gradient-accumulation-steps 2 --max-seconds 8 --freeze-feature-encoder --logging-steps 10
+
+python -m src.training.train_distilhubert --train-csv data/processed/splits/split2_speaker_disjoint_fold1/train.csv --dev-csv data/processed/splits/split2_speaker_disjoint_fold1/dev.csv --test-csv data/processed/splits/split2_speaker_disjoint_fold1/test.csv --output-dir models/checkpoints/exp2_speaker_disjoint_fold1_distilhubert --epochs 3 --batch-size 4 --eval-batch-size 4 --gradient-accumulation-steps 2 --max-seconds 8 --freeze-feature-encoder --logging-steps 10
+
+python -m src.training.train_distilhubert --train-csv data/processed/splits/split2_speaker_disjoint_fold2/train.csv --dev-csv data/processed/splits/split2_speaker_disjoint_fold2/dev.csv --test-csv data/processed/splits/split2_speaker_disjoint_fold2/test.csv --output-dir models/checkpoints/exp2_speaker_disjoint_fold2_distilhubert --epochs 3 --batch-size 4 --eval-batch-size 4 --gradient-accumulation-steps 2 --max-seconds 8 --freeze-feature-encoder --logging-steps 10
+
+python -m src.training.train_distilhubert --train-csv data/processed/splits/split2_speaker_disjoint_fold3/train.csv --dev-csv data/processed/splits/split2_speaker_disjoint_fold3/dev.csv --test-csv data/processed/splits/split2_speaker_disjoint_fold3/test.csv --output-dir models/checkpoints/exp2_speaker_disjoint_fold3_distilhubert --epochs 3 --batch-size 4 --eval-batch-size 4 --gradient-accumulation-steps 2 --max-seconds 8 --freeze-feature-encoder --logging-steps 10
+
+

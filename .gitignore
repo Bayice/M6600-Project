@@ -20,25 +20,14 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Large project artifacts
-data/
-models/
+# Logs only
 logs/
-results/
+*.log
 
-# Large model/checkpoint files
-*.pt
-*.pth
-*.ckpt
-*.bin
-*.safetensors
-*.onnx
-*.engine
-*.h5
-*.pkl
-*.pickle
+# Dataset folders: keep datasets out of GitHub
+data/
 
-# Audio/video/data archives
+# Large raw audio/data archives
 *.wav
 *.flac
 *.mp3
@@ -52,6 +41,6 @@ results/
 *.7z
 *.rar
 
-# Numpy generated files
-*.npy
-*.npz
+# Optional temporary files
+*.tmp
+*.bak
