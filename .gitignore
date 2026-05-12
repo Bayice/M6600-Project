@@ -1,0 +1,57 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints/
+
+# Environments
+.venv/
+venv/
+env/
+ENV/
+.conda/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large project artifacts
+data/
+models/
+logs/
+results/
+
+# Large model/checkpoint files
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+*.onnx
+*.engine
+*.h5
+*.pkl
+*.pickle
+
+# Audio/video/data archives
+*.wav
+*.flac
+*.mp3
+*.mp4
+*.avi
+*.mkv
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+
+# Numpy generated files
+*.npy
+*.npz
