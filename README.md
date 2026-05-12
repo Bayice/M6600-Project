@@ -67,7 +67,7 @@ These directories contain raw datasets, processed datasets, trained checkpoints,
 Large files are provided separately through Google Drive:
 
 **Google Drive link:**  
-`PASTE_GOOGLE_DRIVE_LINK_HERE`
+`https://drive.google.com/drive/folders/1dYOD1wdzU1XrErahCi9PI4C-1vj9kkUZ?usp=drive_link`
 
 After downloading the Google Drive folder, restore the large directories to the project root using the same directory structure:
 

@@ -20,14 +20,32 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Logs only
-logs/
-*.log
+# Ignore large project folders but keep folder placeholders
+data/*
+!data/.gitkeep
 
-# Dataset folders: keep datasets out of GitHub
-data/
+models/*
+!models/.gitkeep
 
-# Large raw audio/data archives
+logs/*
+!logs/.gitkeep
+
+results/*
+!results/.gitkeep
+
+# Large model/checkpoint files
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+*.onnx
+*.engine
+*.h5
+*.pkl
+*.pickle
+
+# Audio/video/data archives
 *.wav
 *.flac
 *.mp3
@@ -41,6 +59,10 @@ data/
 *.7z
 *.rar
 
-# Optional temporary files
+# Numpy generated files
+*.npy
+*.npz
+
+# Temporary files
 *.tmp
 *.bak
